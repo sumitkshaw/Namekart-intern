@@ -5,7 +5,9 @@ import ShareModal from './ShareModal';
 import { useAuth } from './AuthContext';
 import './App.css';
 
-const API_BASE = 'http://localhost:8000/api';
+// const API_BASE = 'http://localhost:8000/api';
+const API_BASE = 'https://namekart-intern-production.up.railway.app/api';
+
 
 function MainApp() {
   const [notes, setNotes] = useState([]);
