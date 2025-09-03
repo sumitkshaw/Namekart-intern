@@ -77,10 +77,12 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000", 
-        "http://127.0.0.1:3000",
-        "https://*.vercel.app",
-        "https://your-app-name.vercel.app"
+        "http://localhost:3000",           # Local development
+        "http://127.0.0.1:3000",          # Local development  
+        "https://*.vercel.app",           # Vercel deployments
+        "https://*.netlify.app",          # Netlify deployments
+        "https://*.railway.app",          # Railway frontend deployments
+        "*"                               # Allow all for assignment (temporary)
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -259,4 +261,5 @@ async def delete_note(note_id: int, db: Session = Depends(get_db)):
     return {"message": "Note deleted successfully"}
 
 if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
