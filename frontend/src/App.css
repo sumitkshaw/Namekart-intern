@@ -332,3 +332,67 @@ body {
     padding: 0.5rem 1rem;
   }
 }
+/* Add these new styles to your existing App.css */
+
+/* Version indicator styles */
+.note-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.note-version {
+  font-size: 0.75rem;
+  color: #888;
+  font-weight: 500;
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  width: fit-content;
+}
+
+/* Enhanced error message for conflicts */
+.error-message {
+  background: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: slideIn 0.3s ease;
+}
+
+/* Conflict-specific styling */
+.error-message:has-text("Conflict") {
+  background: #fff3cd;
+  border-color: #ffeaa7;
+  color: #856404;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive updates for version display */
+@media (max-width: 768px) {
+  .note-meta {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .note-version {
+    font-size: 0.7rem;
+  }
+}

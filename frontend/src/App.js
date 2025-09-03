@@ -8,6 +8,7 @@ function App() {
   const [notes, setNotes] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
+  const [editingVersion, setEditingVersion] = useState(null);
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,7 +21,7 @@ function App() {
       const response = await axios.get(`${API_BASE}/notes`);
       setNotes(response.data);
     } catch (error) {
-      setError('Error fetching notes');
+      setError('Error fetching notes: ' + (error.response?.data?.detail || error.message));
       console.error('Error fetching notes:', error);
     }
     setLoading(false);
@@ -39,27 +40,38 @@ function App() {
       setNotes([response.data, ...notes]);
       setNewNote('');
     } catch (error) {
-      setError('Error creating note');
+      setError('Error creating note: ' + (error.response?.data?.detail || error.message));
       console.error('Error creating note:', error);
     }
     setLoading(false);
   };
 
-  // Update note
-  const updateNote = async (id, content) => {
+  // Update note with version control
+  const updateNote = async (id, content, version) => {
     setLoading(true);
     setError('');
     try {
       const response = await axios.put(`${API_BASE}/notes/${id}`, {
-        content: content
+        content: content,
+        version: version
       });
       setNotes(notes.map(note => 
         note.id === id ? response.data : note
       ));
       setEditingId(null);
       setEditText('');
+      setEditingVersion(null);
     } catch (error) {
-      setError('Error updating note');
+      if (error.response?.status === 409) {
+        // Conflict - note was modified by someone else
+        setError('⚠️ Conflict: This note was updated by someone else. Refreshing notes...');
+        setTimeout(() => {
+          fetchNotes();
+          cancelEditing();
+        }, 2000);
+      } else {
+        setError('Error updating note: ' + (error.response?.data?.detail || error.message));
+      }
       console.error('Error updating note:', error);
     }
     setLoading(false);
@@ -77,7 +89,7 @@ function App() {
       await axios.delete(`${API_BASE}/notes/${id}`);
       setNotes(notes.filter(note => note.id !== id));
     } catch (error) {
-      setError('Error deleting note');
+      setError('Error deleting note: ' + (error.response?.data?.detail || error.message));
       console.error('Error deleting note:', error);
     }
     setLoading(false);
@@ -86,16 +98,18 @@ function App() {
   const startEditing = (note) => {
     setEditingId(note.id);
     setEditText(note.content);
+    setEditingVersion(note.version);
   };
 
   const cancelEditing = () => {
     setEditingId(null);
     setEditText('');
+    setEditingVersion(null);
   };
 
   const saveEdit = () => {
     if (!editText.trim()) return;
-    updateNote(editingId, editText);
+    updateNote(editingId, editText, editingVersion);
   };
 
   const formatDate = (dateString) => {
@@ -134,6 +148,7 @@ function App() {
         <header className="header">
           <h1>My Notes App</h1>
           <p>Capture your thoughts and ideas</p>
+          <small style={{opacity: 0.8}}>Now with conflict detection!</small>
         </header>
 
         {/* Error Message */}
@@ -192,9 +207,14 @@ function App() {
             notes.map((note) => (
               <div key={note.id} className="note-card">
                 <div className="note-header">
-                  <span className="note-date">
-                    {formatDate(note.created_at)}
-                  </span>
+                  <div className="note-meta">
+                    <span className="note-date">
+                      {formatDate(note.created_at)}
+                    </span>
+                    <span className="note-version">
+                      v{note.version}
+                    </span>
+                  </div>
                   <div className="note-actions">
                     {editingId === note.id ? (
                       <>
@@ -235,14 +255,19 @@ function App() {
                 </div>
                 
                 {editingId === note.id ? (
-                  <textarea
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    onKeyDown={handleEditKeyPress}
-                    className="edit-textarea"
-                    rows="4"
-                    autoFocus
-                  />
+                  <div>
+                    <textarea
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={handleEditKeyPress}
+                      className="edit-textarea"
+                      rows="4"
+                      autoFocus
+                    />
+                    <small style={{color: '#666', fontSize: '0.8rem'}}>
+                      Editing version {editingVersion}
+                    </small>
+                  </div>
                 ) : (
                   <p className="note-content">{note.content}</p>
                 )}
