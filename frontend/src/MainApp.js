@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import RAGSearchComponent from './RAGSearchComponent';
+import ShareModal from './ShareModal';
 import { useAuth } from './AuthContext';
 import './App.css';
 
@@ -15,6 +16,8 @@ function MainApp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [highlightedNoteId, setHighlightedNoteId] = useState(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [noteToShare, setNoteToShare] = useState(null);
 
   const { currentUser, logout } = useAuth();
 
@@ -129,6 +132,17 @@ function MainApp() {
     updateNote(editingId, editText, editingVersion);
   };
 
+  // Share functionality
+  const openShareModal = (note) => {
+    setNoteToShare(note);
+    setShareModalOpen(true);
+  };
+
+  const closeShareModal = () => {
+    setShareModalOpen(false);
+    setNoteToShare(null);
+  };
+
   // Handle note selection from RAG search results
   const handleNoteSelect = (noteId) => {
     // Clear any existing highlight
@@ -190,7 +204,7 @@ function MainApp() {
           <div className="header-content">
             <h1>My Notes App</h1>
             <p>Capture your thoughts and ideas with AI-powered search</p>
-            <small style={{opacity: 0.8}}>Enhanced with RAG search & conflict detection!</small>
+            <small style={{opacity: 0.8}}>Enhanced with RAG search, conflict detection & sharing!</small>
           </div>
           <div className="auth-controls">
             <div className="user-info">
@@ -301,6 +315,13 @@ function MainApp() {
                           ✎
                         </button>
                         <button
+                          onClick={() => openShareModal(note)}
+                          className="btn-icon btn-share"
+                          title="Share"
+                        >
+                          🔗
+                        </button>
+                        <button
                           onClick={() => deleteNote(note.id)}
                           className="btn-icon btn-delete"
                           title="Delete"
@@ -344,6 +365,13 @@ function MainApp() {
             Refresh Notes
           </button>
         </div>
+
+        {/* Share Modal */}
+        <ShareModal 
+          note={noteToShare}
+          isOpen={shareModalOpen}
+          onClose={closeShareModal}
+        />
       </div>
     </div>
   );

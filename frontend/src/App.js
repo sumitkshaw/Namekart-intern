@@ -5,6 +5,7 @@ import ProtectedRoute from './ProtectedRoute';
 import Login from './Login';
 import Signup from './Signup';
 import MainApp from './MainApp';
+import SharedNote from './SharedNote';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/share/:shareId" element={<SharedNote />} />
             <Route 
               path="/" 
               element={

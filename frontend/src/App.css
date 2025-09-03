@@ -517,3 +517,13 @@ body {
     padding: 0.4rem 0.8rem;
   }
 }
+
+/* Add these styles to your existing App.css file */
+
+.btn-share {
+  color: #17a2b8;
+}
+
+.btn-share:hover {
+  background: rgba(23, 162, 184, 0.1);
+}
