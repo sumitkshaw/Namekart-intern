@@ -116,7 +116,7 @@ const RAGSearchComponent = ({ onNoteSelect }) => {
              ragStatus?.status === 'error' ? '🔴' : '🟡'}
           </span>
           <span className="rag-status-text">
-            AI Search {ragStatus?.status === 'active' ? 'Ready' : 
+            AI Search (MANUALLY DISABLED DUE TO IMAGE SIZE INCREASING 4GB) {ragStatus?.status === 'active' ? 'Ready' : 
                      ragStatus?.status === 'error' ? 'Error' : 'Loading'}
           </span>
           <span className="rag-expand-icon">{isExpanded ? '▼' : '▶'}</span>
