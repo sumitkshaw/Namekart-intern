@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import RAGSearchComponent from './RAGSearchComponent';
 import './App.css';
 
 const API_BASE = 'http://localhost:8000/api';
@@ -12,6 +13,10 @@ function App() {
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [highlightedNoteId, setHighlightedNoteId] = useState(null);
+
+  // Refs for scrolling to specific notes
+  const noteRefs = useRef({});
 
   // Fetch all notes
   const fetchNotes = async () => {
@@ -112,6 +117,30 @@ function App() {
     updateNote(editingId, editText, editingVersion);
   };
 
+  // Handle note selection from RAG search results
+  const handleNoteSelect = (noteId) => {
+    // Clear any existing highlight
+    setHighlightedNoteId(null);
+    
+    // Set the note to be highlighted
+    setHighlightedNoteId(noteId);
+    
+    // Scroll to the note
+    setTimeout(() => {
+      if (noteRefs.current[noteId]) {
+        noteRefs.current[noteId].scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }
+    }, 100);
+    
+    // Remove highlight after 3 seconds
+    setTimeout(() => {
+      setHighlightedNoteId(null);
+    }, 3000);
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -147,8 +176,8 @@ function App() {
         {/* Header */}
         <header className="header">
           <h1>My Notes App</h1>
-          <p>Capture your thoughts and ideas</p>
-          <small style={{opacity: 0.8}}>Now with conflict detection!</small>
+          <p>Capture your thoughts and ideas with AI-powered search</p>
+          <small style={{opacity: 0.8}}>Enhanced with RAG search & conflict detection!</small>
         </header>
 
         {/* Error Message */}
@@ -158,6 +187,9 @@ function App() {
             <button onClick={() => setError('')} className="close-error">×</button>
           </div>
         )}
+
+        {/* RAG Search Component */}
+        <RAGSearchComponent onNoteSelect={handleNoteSelect} />
 
         {/* Create New Note */}
         <div className="create-note-section">
@@ -205,7 +237,11 @@ function App() {
             </div>
           ) : (
             notes.map((note) => (
-              <div key={note.id} className="note-card">
+              <div 
+                key={note.id} 
+                className={`note-card ${highlightedNoteId === note.id ? 'highlighted' : ''}`}
+                ref={(el) => noteRefs.current[note.id] = el}
+              >
                 <div className="note-header">
                   <div className="note-meta">
                     <span className="note-date">

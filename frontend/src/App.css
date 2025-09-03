@@ -396,3 +396,33 @@ body {
     font-size: 0.7rem;
   }
 }
+
+/* Add this to your existing App.css file */
+
+/* Highlighted note animation */
+.note-card.highlighted {
+  background: linear-gradient(135deg, #fff8dc, #fffacd);
+  border: 2px solid #ffd700;
+  transform: scale(1.02);
+  animation: highlightPulse 0.8s ease-in-out;
+}
+
+@keyframes highlightPulse {
+  0% {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-color: #ffd700;
+  }
+  50% {
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+    border-color: #ffb347;
+  }
+  100% {
+    box-shadow: 0 6px 12px rgba(255, 215, 0, 0.2);
+    border-color: #ffd700;
+  }
+}
+
+/* Smooth transition for notes */
+.note-card {
+  transition: all 0.3s ease, background 0.5s ease, border 0.5s ease;
+}

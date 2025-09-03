@@ -8,12 +8,17 @@ from datetime import datetime
 from typing import List, Optional
 import uvicorn
 
+from rag_service import SimpleRAG
+from pydantic import BaseModel
+
 # Database setup
 SQLALCHEMY_DATABASE_URL = "sqlite:///./notes.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+rag_service = SimpleRAG()
 
 # Database Model - Updated with version field
 class Note(Base):
@@ -48,6 +53,18 @@ class NoteResponse(BaseModel):
     
     class Config:
         from_attributes = True
+        
+class RAGQuery(BaseModel):
+    query: str
+    top_k: int = 3
+
+class RAGResponse(BaseModel):
+    success: bool
+    response: str
+    sources: List[dict]
+    context_used: List[str]
+    query: str
+    timestamp: str
 
 # FastAPI App
 app = FastAPI(
@@ -113,10 +130,77 @@ async def create_note(note: NoteCreate, db: Session = Depends(get_db)):
     db.refresh(db_note)
     return db_note
 
+
+@app.post("/api/notes/search", response_model=dict)
+async def search_notes_rag(query_data: RAGQuery, db: Session = Depends(get_db)):
+    """RAG-powered note search"""
+    try:
+        # Ensure vector store is up to date
+        rag_service.load_notes_to_vector_store()
+        
+        # Perform RAG search
+        result = rag_service.search_notes(query_data.query, query_data.top_k)
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"RAG search failed: {str(e)}")
+
+@app.post("/api/rag/refresh")
+async def refresh_rag_index(db: Session = Depends(get_db)):
+    """Refresh RAG vector store with latest notes"""
+    try:
+        rag_service.load_notes_to_vector_store()
+        return {"message": "RAG index refreshed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"RAG refresh failed: {str(e)}")
+
+@app.get("/api/rag/status")
+async def rag_status():
+    """Get RAG system status"""
+    try:
+        doc_count = len(rag_service.vector_store['documents'])
+        return {
+            "status": "active",
+            "indexed_chunks": doc_count,
+            "model": "sentence-transformers/all-MiniLM-L6-v2",
+            "vector_dimensions": 384
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
+# Update the create_note function to automatically add to RAG
+@app.post("/api/notes", response_model=NoteResponse)
+async def create_note(note: NoteCreate, db: Session = Depends(get_db)):
+    """Create a new note and add to RAG index"""
+    if not note.content.strip():
+        raise HTTPException(status_code=400, detail="Note content cannot be empty")
+    
+    db_note = Note(content=note.content.strip(), version=1)
+    db.add(db_note)
+    db.commit()
+    db.refresh(db_note)
+    
+    # Add to RAG vector store
+    try:
+        rag_service.add_note_to_vector_store(
+            note_id=db_note.id,
+            content=db_note.content,
+            created_at=db_note.created_at.isoformat(),
+            updated_at=db_note.updated_at.isoformat(),
+            version=db_note.version
+        )
+    except Exception as e:
+        print(f"Warning: Failed to add note to RAG index: {e}")
+    
+    return db_note
+
 # Updated PUT endpoint with version control
 @app.put("/api/notes/{note_id}", response_model=NoteResponse)
 async def update_note(note_id: int, note_update: NoteUpdateWithVersion, db: Session = Depends(get_db)):
-    """Update an existing note with optimistic locking"""
+    """Update an existing note with optimistic locking and RAG refresh"""
     note = db.query(Note).filter(Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
@@ -137,6 +221,13 @@ async def update_note(note_id: int, note_update: NoteUpdateWithVersion, db: Sess
     note.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(note)
+    
+    # Refresh RAG index (simple approach - reload all)
+    try:
+        rag_service.load_notes_to_vector_store()
+    except Exception as e:
+        print(f"Warning: Failed to refresh RAG index: {e}")
+    
     return note
 
 # Legacy update endpoint (for backward compatibility)
